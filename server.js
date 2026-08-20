@@ -26,17 +26,17 @@ const ROWS = {
   ],
 };
 
-// ---------- SEO заглавие и описание (един и същ модел за ВСИЧКИ страници с детайли) ----------
+// ---------- SEO заглавие и описание (оптимизирани за български търсачки) ----------
 function seoTitle(kind, title, year) {
-  const label = kind === 'movie' ? 'Филм' : 'Сериал';
-  const y = year || 'неизвестна година';
-  return `[${label}] ${title} (${y}) Сюжет, Оценка, Актьорски Състав и Трейлър`;
+  const label = kind === 'movie' ? 'Филм онлайн' : 'Сериал онлайн';
+  const y = year ? `(${year})` : '';
+  return `${title} ${y} - Гледай ${label} с български субтитри | CineBox`;
 }
 
 function seoDescription(title, year, genreNames) {
   const yearPart = year ? `${year} година, ` : '';
   const genrePart = genreNames ? `жанр ${genreNames}, ` : '';
-  return `Сюжет, актьорски състав, оценка и официален трейлър на ${title} в CineBox. ${genrePart}${yearPart}цялата информация на едно място.`;
+  return `Гледай ${title} онлайн с български субтитри. Сюжет, актьорски състав, оценка и официален трейлър в CineBox. ${genrePart}${yearPart}цялата информация на едно място.`;
 }
 
 // ---------- HOME (/, /movie, /tv) ----------
