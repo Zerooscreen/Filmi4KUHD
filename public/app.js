@@ -57,14 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
+        const res = styleFetchSearch(query); // Menggunakan query ter-encode aman
+        const data = await res;
         
         if (data.results && data.results.length > 0) {
           searchResults.style.display = 'block';
           searchResults.innerHTML = data.results.slice(0, 5).map(item => `
             <a href="/${item.media_type || 'movie'}/${item.id}/${encodeURIComponent(item.title || item.name)}" style="display:block; padding:8px; color:#fff; text-decoration:none;">
-              ${item.title || item.name}
+              ${escapeHtml(item.title || item.name)}
             </a>
           `).join('');
         } else {
@@ -84,6 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+async function styleFetchSearch(query) {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+  return await res.json();
+}
 
 // Helper escape HTML
 function escapeHtml(str) {
