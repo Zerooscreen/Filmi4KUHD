@@ -23,7 +23,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const SITE_URL = process.env.SITE_URL || 'https://filmi4kuhd.up.railway.app';
+const SITE_URL = 'https://filmi4kuhd.up.railway.app';
 
 app.use(express.static(path.join(__dirname, 'public')));
 
