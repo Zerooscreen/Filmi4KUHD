@@ -23,7 +23,6 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// TODO: заменете с крайния домейн след деплой в Railway
 const SITE_URL = process.env.SITE_URL || 'https://cinebox-bg.up.railway.app';
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -43,7 +42,6 @@ const ROWS = {
   ],
 };
 
-// ---------- SEO заглавие и описание (един и същ модел за ВСИЧКИ страници с детайли) ----------
 function seoTitle(kind, title, year) {
   const label = kind === 'movie' ? 'Филм' : 'Сериал';
   const y = year || 'неизвестна година';
@@ -147,7 +145,7 @@ app.get('/movie/:id/:slug?', async (req, res) => {
             <span class="m-item">${escapeHtml(data.status || '')}</span>
           </div>
           ${genreRow(data.genres)}
-          ${typeof watchButton === 'function' ? watchButton(id) : `<a href="/watch/${id}" class="watch-btn">Гледай сега</a>`}
+          <a href="/watch/${id}" class="watch-btn" style="display:inline-block; margin-top:15px; padding:10px 20px; background:#e50914; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold;">Гледай сега</a>
         </div>
       </div>
       <div class="section-block"><h3>Сюжет</h3><div class="bio-text">${escapeHtml(data.overview) || 'Няма наличен сюжет.'}</div></div>
@@ -229,6 +227,7 @@ app.get('/tv/:id/:slug?', async (req, res) => {
             <span class="m-item">${escapeHtml(data.status || '')}</span>
           </div>
           ${genreRow(data.genres)}
+          <a href="/watch/${id}" class="watch-btn" style="display:inline-block; margin-top:15px; padding:10px 20px; background:#e50914; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold;">Гледай сега</a>
         </div>
       </div>
       <div class="section-block"><h3>Сюжет</h3><div class="bio-text">${escapeHtml(data.overview) || 'Няма наличен сюжет.'}</div></div>
@@ -266,13 +265,76 @@ app.get('/tv/:id/:slug?', async (req, res) => {
   }
 });
 
+// ---------- DETAIL AKTOR: /person/:id/:slug? ----------
+app.get('/person/:id/:slug?', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [person, credits] = await Promise.all([
+      tmdb(`/person/${id}`),
+      tmdb(`/person/${id}/combined_credits`)
+    ]);
+
+    const correctSlug = slugify(person.name);
+    if (req.params.slug !== correctSlug) {
+      return res.redirect(301, `/person/${id}/${encodeURIComponent(correctSlug)}`);
+    }
+
+    const knownFor = (credits.cast || [])
+      .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+      .slice(0, 12);
+    
+    const cards = knownFor.map(item => posterCard(item, item.media_type || 'movie')).join('');
+
+    const bodyHtml = `
+      <div style="padding: 20px; color: #fff; max-width: 1200px; margin: 0 auto;">
+        <a class="back-btn" href="javascript:history.back()">← Назад</a>
+        <div style="display: flex; gap: 30px; flex-wrap: wrap; margin-top: 20px;">
+          <div style="flex: 0 0 250px;">
+            <img src="${img(person.profile_path, 'h632')}" alt="${escapeHtml(person.name)}" style="width: 100%; border-radius: 8px; object-fit: cover;">
+          </div>
+          <div style="flex: 1; min-width: 280px;">
+            <h1 style="margin-top: 0; font-size: 2.2rem;">${escapeHtml(person.name)}</h1>
+            <p><strong>Роден на:</strong> ${person.birthday || 'Няма данни'} ${person.place_of_birth ? `(${person.place_of_birth})` : ''}</p>
+            <h3 style="margin-top: 20px;">Биография</h3>
+            <div style="line-height: 1.6; color: #ccc; max-height: 250px; overflow-y: auto;">${escapeHtml(person.biography) || 'Няма налична биография.'}</div>
+          </div>
+        </div>
+        <div style="margin-top: 40px;">
+          <h3>Известен с</h3>
+          <div class="grid" style="margin-top: 15px;">${cards}</div>
+        </div>
+      </div>
+    `;
+
+    const headHtml = head({
+      title: `${person.name} · CineBox`,
+      description: `Информация и филми с участието на ${person.name}`,
+      url: `${SITE_URL}/person/${id}/${encodeURIComponent(correctSlug)}`,
+      image: img(person.profile_path, 'w780'),
+    });
+
+    res.send(layout({ headHtml, bodyHtml, activeTab: 'movie' }));
+  } catch (e) {
+    res.status(404).send(layout({
+      headHtml: head({ title: 'Актьорът не е намерен · CineBox', description: '', url: `${SITE_URL}/person/${id}` }),
+      bodyHtml: `<div class="empty" style="padding: 40px; text-align: center; color: #fff;">Актьорът не беше намерен.</div>`,
+      activeTab: 'movie',
+    }));
+  }
+});
+
 // ---------- HALAMAN HITUNGAN MUNDUR (COUNTDOWN WATCH) ----------
 app.get('/watch/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const data = await tmdb(`/movie/${id}`);
+    let data;
+    try {
+      data = await tmdb(`/movie/${id}`);
+    } catch (err) {
+      data = await tmdb(`/tv/${id}`);
+    }
     const title = data.title || data.name || 'Видео';
-    const targetUrl = 'https://moviegate.host/bg'; 
+    const targetUrl = 'https://moviegate.bolt.host/bg'; 
 
     const bodyHtml = `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; color: #fff; text-align: center; font-family: sans-serif;">
@@ -318,14 +380,26 @@ app.get('/search', async (req, res) => {
   const query = req.query.q || '';
   try {
     const data = await tmdb('/search/multi', { query });
-    const results = (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+    const results = (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv' || r.media_type === 'person');
     
-    const cards = results.map(item => posterCard(item, item.media_type)).join('');
+    const cards = results.map(item => {
+      if (item.media_type === 'person') {
+        const pSlug = slugify(item.name);
+        return `
+          <div class="poster-card" onclick="window.location.href='/person/${item.id}/${encodeURIComponent(pSlug)}'" style="cursor:pointer; background:#181818; border-radius:8px; overflow:hidden; text-align:center; padding-bottom:10px;">
+            <img src="${img(item.profile_path, 'w185')}" alt="${escapeHtml(item.name)}" style="width:100%; height:250px; object-fit:cover;">
+            <div style="padding:10px; color:#fff; font-weight:bold; font-size:0.9rem;">${escapeHtml(item.name)}</div>
+            <div style="color:#aaa; font-size:0.8rem;">Актьор</div>
+          </div>
+        `;
+      }
+      return posterCard(item, item.media_type);
+    }).join('');
     
     const bodyHtml = `
       <div class="section-block" style="padding: 20px; color: #fff;">
         <h2>Резултати от търсенето за: "${escapeHtml(query)}"</h2>
-        ${cards ? `<div class="grid">${cards}</div>` : '<div class="empty" style="padding: 40px; text-align: center;">Няма намерени резултати.</div>'}
+        ${cards ? `<div class="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:15px; margin-top:20px;">${cards}</div>` : '<div class="empty" style="padding: 40px; text-align: center;">Няма намерени резултати.</div>'}
       </div>
     `;
 
@@ -353,14 +427,14 @@ app.get('/api/search', async (req, res) => {
     if (!q.trim()) return res.json({ results: [] });
     const data = await tmdb('/search/multi', { query: q });
     const results = data.results
-      .filter(r => r.media_type === 'movie' || r.media_type === 'tv')
+      .filter(r => r.media_type === 'movie' || r.media_type === 'tv' || r.media_type === 'person')
       .slice(0, 8)
       .map(r => ({
         id: r.id,
         type: r.media_type,
         title: r.title || r.name,
         year: (r.release_date || r.first_air_date || '').slice(0, 4),
-        poster: img(r.poster_path, 'w92'),
+        poster: img(r.poster_path || r.profile_path, 'w92'),
         slug: slugify(r.title || r.name),
       }));
     res.json({ results });
