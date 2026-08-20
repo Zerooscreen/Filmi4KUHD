@@ -1,0 +1,15 @@
+{
+  "name": "cinebox-bg",
+  "version": "1.0.0",
+  "description": "CineBox Bulgaria - sait s informatsiya za filmi i seriali (ne e usluga za striyming)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
