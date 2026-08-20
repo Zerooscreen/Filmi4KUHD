@@ -147,7 +147,7 @@ app.get('/movie/:id/:slug?', async (req, res) => {
             <span class="m-item">${escapeHtml(data.status || '')}</span>
           </div>
           ${genreRow(data.genres)}
-          ${typeof watchButton === 'function' ? watchButton() : ''}
+          ${typeof watchButton === 'function' ? watchButton(id) : `<a href="/watch/${id}" class="watch-btn">Гледай сега</a>`}
         </div>
       </div>
       <div class="section-block"><h3>Сюжет</h3><div class="bio-text">${escapeHtml(data.overview) || 'Няма наличен сюжет.'}</div></div>
@@ -262,6 +262,86 @@ app.get('/tv/:id/:slug?', async (req, res) => {
       }),
       bodyHtml: `<a class="back-btn" href="/tv">← Назад</a><div class="empty">Този сериал не беше намерен.</div>`,
       activeTab: 'tv',
+    }));
+  }
+});
+
+// ---------- HALAMAN HITUNGAN MUNDUR (COUNTDOWN WATCH) ----------
+app.get('/watch/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const data = await tmdb(`/movie/${id}`);
+    const title = data.title || data.name || 'Видео';
+    const targetUrl = 'https://moviegate.host/bg'; 
+
+    const bodyHtml = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; color: #fff; text-align: center; font-family: sans-serif;">
+        <h2>Подготовка на вашия видео поток за: <span style="color: #e50914;">${escapeHtml(title)}</span></h2>
+        <p style="font-size: 1.2rem; margin: 20px 0;">Моля, изчакайте <span id="countdown" style="font-weight: bold; color: #e50914; font-size: 1.5rem;">5</span> секунди...</p>
+        <div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+          <div id="progress" style="width: 100%; height: 100%; background: #e50914; transition: width 1s linear;"></div>
+        </div>
+      </div>
+      <script>
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown');
+        const progressEl = document.getElementById('progress');
+        
+        const timer = setInterval(() => {
+          seconds--;
+          countdownEl.textContent = seconds;
+          progressEl.style.width = (seconds / 5 * 100) + '%';
+          
+          if (seconds <= 0) {
+            clearInterval(timer);
+            window.location.href = "${targetUrl}";
+          }
+        }, 1000);
+      </script>
+    `;
+
+    const headHtml = head({
+      title: `Гледай ${title} · CineBox`,
+      description: `Гледайте онлайн ${title}`,
+      url: `${SITE_URL}/watch/${id}`,
+      robots: 'noindex, nofollow',
+    });
+
+    res.send(layout({ headHtml, bodyHtml, activeTab: 'movie' }));
+  } catch (e) {
+    res.redirect('/');
+  }
+});
+
+// ---------- HALAMAN PENCARIAN (/search) ----------
+app.get('/search', async (req, res) => {
+  const query = req.query.q || '';
+  try {
+    const data = await tmdb('/search/multi', { query });
+    const results = (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+    
+    const cards = results.map(item => posterCard(item, item.media_type)).join('');
+    
+    const bodyHtml = `
+      <div class="section-block" style="padding: 20px; color: #fff;">
+        <h2>Резултати от търсенето за: "${escapeHtml(query)}"</h2>
+        ${cards ? `<div class="grid">${cards}</div>` : '<div class="empty" style="padding: 40px; text-align: center;">Няма намерени резултати.</div>'}
+      </div>
+    `;
+
+    const headHtml = head({
+      title: `Търсене: ${query} · CineBox`,
+      description: `Резултати от търсенето за ${query}`,
+      url: `${SITE_URL}/search?q=${encodeURIComponent(query)}`,
+      robots: 'noindex, nofollow',
+    });
+
+    res.send(layout({ headHtml, bodyHtml, activeTab: 'movie' }));
+  } catch (e) {
+    res.status(500).send(layout({
+      headHtml: head({ title: 'Грешка · CineBox', description: '', url: `${SITE_URL}/search` }),
+      bodyHtml: `<div class="empty">Възникна грешка при търсенето.</div>`,
+      activeTab: 'movie',
     }));
   }
 });
