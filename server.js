@@ -23,7 +23,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const SITE_URL = process.env.SITE_URL || 'https://cinebox-bg.up.railway.app';
+const SITE_URL = process.env.SITE_URL || 'https://filmi4kuhd.up.railway.app';
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -51,7 +51,7 @@ function seoTitle(kind, title, year) {
 function seoDescription(title, year, genreNames) {
   const yearPart = year ? `${year} година, ` : '';
   const genrePart = genreNames ? `жанр ${genreNames}, ` : '';
-  return `Сюжет, актьорски състав, оценка и официален трейлър на ${title} в CineBox. ${genrePart}${yearPart}цялата информация на едно място.`;
+  return `Сюжет, актьорски състав, оценка и официален трейлър на ${title}. ${genrePart}${yearPart}цялата информация на едно място.`;
 }
 
 // ---------- HOME (/, /movie, /tv) ----------
@@ -169,7 +169,7 @@ app.get('/movie/:id/:slug?', async (req, res) => {
   } catch (e) {
     res.status(404).send(layout({
       headHtml: head({
-        title: 'Филмът не е намерен · CineBox',
+        title: 'Филмът не е намерен',
         description: DEFAULT_DESC,
         url: `${SITE_URL}/movie/${id}`,
         robots: 'noindex, nofollow',
@@ -254,7 +254,7 @@ app.get('/tv/:id/:slug?', async (req, res) => {
   } catch (e) {
     res.status(404).send(layout({
       headHtml: head({
-        title: 'Сериалът не е намерен · CineBox',
+        title: 'Сериалът не е намерен',
         description: DEFAULT_DESC,
         url: `${SITE_URL}/tv/${id}`,
         robots: 'noindex, nofollow',
@@ -307,7 +307,7 @@ app.get('/person/:id/:slug?', async (req, res) => {
     `;
 
     const headHtml = head({
-      title: `${person.name} · CineBox`,
+      title: `${person.name}`,
       description: `Информация и филми с участието на ${person.name}`,
       url: `${SITE_URL}/person/${id}/${encodeURIComponent(correctSlug)}`,
       image: img(person.profile_path, 'w780'),
@@ -316,7 +316,7 @@ app.get('/person/:id/:slug?', async (req, res) => {
     res.send(layout({ headHtml, bodyHtml, activeTab: 'movie' }));
   } catch (e) {
     res.status(404).send(layout({
-      headHtml: head({ title: 'Актьорът не е намерен · CineBox', description: '', url: `${SITE_URL}/person/${id}` }),
+      headHtml: head({ title: 'Актьорът не е намерен', description: '', url: `${SITE_URL}/person/${id}` }),
       bodyHtml: `<div class="empty" style="padding: 40px; text-align: center; color: #fff;">Актьорът не беше намерен.</div>`,
       activeTab: 'movie',
     }));
@@ -363,7 +363,7 @@ app.get('/watch/:id', async (req, res) => {
     `;
 
     const headHtml = head({
-      title: `Гледай ${title} · CineBox`,
+      title: `Гледай ${title}`,
       description: `Гледайте онлайн ${title}`,
       url: `${SITE_URL}/watch/${id}`,
       robots: 'noindex, nofollow',
@@ -404,7 +404,7 @@ app.get('/search', async (req, res) => {
     `;
 
     const headHtml = head({
-      title: `Търсене: ${query} · CineBox`,
+      title: `Търсене: ${query}`,
       description: `Резултати от търсенето за ${query}`,
       url: `${SITE_URL}/search?q=${encodeURIComponent(query)}`,
       robots: 'noindex, nofollow',
@@ -413,7 +413,7 @@ app.get('/search', async (req, res) => {
     res.send(layout({ headHtml, bodyHtml, activeTab: 'movie' }));
   } catch (e) {
     res.status(500).send(layout({
-      headHtml: head({ title: 'Грешка · CineBox', description: '', url: `${SITE_URL}/search` }),
+      headHtml: head({ title: 'Грешка', description: '', url: `${SITE_URL}/search` }),
       bodyHtml: `<div class="empty">Възникна грешка при търсенето.</div>`,
       activeTab: 'movie',
     }));
@@ -493,5 +493,5 @@ app.get('/robots.txt', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`CineBox (BG) работи на: http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
